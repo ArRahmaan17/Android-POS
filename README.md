@@ -1,14 +1,20 @@
-# Environment Configuration
+# POS Application
 
-This directory contains the environment configuration for the POS application.
+A Point of Sale (POS) application built with React Native.
 
-## Files
+## Environment Configuration
+
+This project uses environment configuration for different settings and API endpoints.
+
+### Configuration Files
+
+The configuration is located in the `config/` directory:
 
 - `env.example.js` - Example configuration file with all available options
 - `env.js` - Your actual environment configuration (not tracked in git)
 - `index.js` - Centralized configuration object and helper functions
 
-## Setup
+### Setup
 
 1. Copy `env.example.js` to `env.js`:
    ```bash
@@ -17,34 +23,34 @@ This directory contains the environment configuration for the POS application.
 
 2. Update the values in `config/env.js` according to your environment
 
-## Configuration Options
+### Configuration Options
 
-### API Configuration
+#### API Configuration
 - `API_BASE_URL` - Base URL for your API
 - `API_TIMEOUT` - Request timeout in milliseconds
 
-### App Configuration
+#### App Configuration
 - `APP_NAME` - Application name
 - `APP_VERSION` - Application version
 - `APP_ENVIRONMENT` - Environment (development, staging, production)
 
-### Security
+#### Security
 - `TOKEN_STORAGE_KEY` - Key for storing authentication token
 - `USER_STORAGE_KEY` - Key for storing user data
 
-### File System
+#### File System
 - `CACHE_DIRECTORY` - Directory for caching files
 - `PROFILE_PICTURE_CACHE` - Subdirectory for profile pictures
 
-### Toast Messages
+#### Toast Messages
 - `TOAST_DURATION` - Toast message duration in milliseconds
 - `TOAST_POSITION` - Toast message position
 
-### Development
+#### Development
 - `DEBUG_MODE` - Enable/disable debug logging
 - `LOG_LEVEL` - Logging level (debug, info, warn, error)
 
-## Usage
+### Usage
 
 Import the configuration in your components:
 
@@ -59,9 +65,9 @@ const isDev = isDevelopment();
 log('This is a debug message', 'debug');
 ```
 
-## Environment-Specific Configurations
+### Environment-Specific Configurations
 
-### Development
+#### Development
 ```javascript
 export const ENV_CONFIG = {
   API_BASE_URL: 'http://10.0.2.2:8000/api',
@@ -71,7 +77,7 @@ export const ENV_CONFIG = {
 };
 ```
 
-### Production
+#### Production
 ```javascript
 export const ENV_CONFIG = {
   API_BASE_URL: 'https://your-production-api.com/api',
@@ -81,7 +87,7 @@ export const ENV_CONFIG = {
 };
 ```
 
-## Security Notes
+### Security Notes
 
 - Never commit `config/env.js` to version control
 - Use different API URLs for different environments

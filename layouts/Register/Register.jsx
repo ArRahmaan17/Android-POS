@@ -1,16 +1,26 @@
 import React, { useState } from "react";
-import { Image, ScrollView, View } from "react-native";
+import {
+  Image,
+  Keyboard,
+  KeyboardAvoidingView,
+  KeyboardAvoidingViewComponent,
+  Platform,
+  ScrollView,
+  TouchableWithoutFeedback,
+  View,
+} from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { httpHelper } from "../../helpers/HttpHelper";
 import Company from "./Company";
 import Account from "./Account";
+import { useNavigation } from "@react-navigation/native";
+import { HelperText, Text, TextInput } from "react-native-paper";
 
 export default function Register() {
-  // benakno cuy
   function handleOnChange(value, key, stateFn) {
     stateFn((prevState) => ({ ...prevState, [key]: value }));
   }
-
+  const navigation = useNavigation();
   const [availableUser, setAvailableUser] = useState(false);
 
   const [user, setUser] = useState({
@@ -18,25 +28,27 @@ export default function Register() {
     // username: "",
     // email: "",
     // phone_number: "",
+    // password: "",
+    // confirm_password: "",
     name: "test1",
     username: "test.rahmaan",
     email: "test@gmail.com",
-    phone_number: "89522983274",
-    password: "",
-    confirm_password: "",
+    phone_number: "6289522983274",
+    password: "testTest1!",
+    confirm_password: "testTest1!",
   });
 
   const [company, setCompany] = useState({
-    name: "",
-    email: "",
-    phone_number: "",
+    name: "Test Aja",
+    email: "test@test.co",
+    phone_number: "6289522983279",
   });
   const [address, setAddress] = useState({
-    place: "",
-    address: "",
-    city: "",
-    province: "",
-    zipCode: "",
+    place: "Test Aja",
+    address: "Test Aja",
+    city: "Test Aja",
+    province: "Test Aja",
+    zipCode: "Test Aja",
   });
 
   const checkAvailabilityUser = async () => {
@@ -49,19 +61,20 @@ export default function Register() {
     }
   };
   return (
-    <SafeAreaProvider>
-      <ScrollView>
+    <KeyboardAvoidingView
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      style={{
+        flex: 1,
+      }}
+    >
+      <ScrollView style={{ paddingHorizontal: 24 }}>
         <View
           style={{
             flex: 1,
-            flexWrap: "wrap",
-            columnGap: 4,
-            flexDirection: "column",
-            padding: 20,
-            justifyContent: "center",
+            paddingVertical: 24,
+            paddingHorizontal: 0,
+            justifyContent: "space-evenly",
             alignItems: "center",
-            backgroundColor: "white",
-            minHeight: "100%",
           }}
         >
           <View
@@ -86,6 +99,7 @@ export default function Register() {
               company={company}
               address={address}
               user={user}
+              navigation={navigation}
               availableUser={availableUser}
               setAvailableUser={setAvailableUser}
               handleOnChange={handleOnChange}
@@ -102,6 +116,6 @@ export default function Register() {
           )}
         </View>
       </ScrollView>
-    </SafeAreaProvider>
+    </KeyboardAvoidingView>
   );
 }

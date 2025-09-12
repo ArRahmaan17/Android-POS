@@ -1,18 +1,23 @@
-import { ScrollView, Text, View } from "react-native";
+import {
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  Text,
+  View,
+} from "react-native";
 import {
   ActivityIndicator,
   Button,
   Chip,
-  Divider,
-  List,
+  HelperText,
   MD2Colors,
   TextInput,
 } from "react-native-paper";
 import Wizard, { WizardRef } from "react-native-wizard";
 import React, { useEffect, useRef, useState } from "react";
 import { httpHelper } from "../../helpers/HttpHelper";
-import { Formik } from "formik";
 import { SafeAreaView } from "react-native-safe-area-context";
+import * as yup from "yup";
 
 export default function Company(props) {
   const wizard = useRef(null);
@@ -22,12 +27,45 @@ export default function Company(props) {
   const [isLoading, setIsLoading] = useState(true);
   const [companyTypes, setCompanyTypes] = useState([]);
   const [companyType, setCompanyType] = useState(null);
+  const [errorsCompany, setErrorsCompany] = useState({
+    name: null,
+    email: null,
+    phone_number: null,
+  });
+  const [statusCompany, setStatusCompany] = useState(false);
+  const companySchema = yup.object({
+    name: yup.string().required().min(5).max(10),
+    email: yup.string().required().email(),
+    phone_number: yup
+      .string()
+      .required()
+      .matches(
+        /628\d{9,10}$/,
+        "phone_number is must indonesian phone number format"
+      ),
+  });
+  const [errorsAddress, setErrorsAddress] = useState({
+    place: null,
+    address: null,
+    city: null,
+    province: null,
+    zipCode: null,
+  });
+  const addressSchema = yup.object({
+    place: yup.string().required().min(5).max(20),
+    address: yup.string().required().min(5).max(20),
+    city: yup.string().required().min(5).max(20),
+    province: yup.string().required().min(5).max(20),
+    zipCode: yup.string().required().min(5).max(20),
+  });
   const stepList = [
     {
       content: (
         <View style={{ flex: 1, flexDirection: "column", minWidth: "100%" }}>
-          <View style={{ marginBottom: 10 }}>
+          <Text style={{ fontSize: 17 }}>Company</Text>
+          <View>
             <TextInput
+              style={{ backgroundColor: "#fff" }}
               placeholder="Please enter your company name"
               mode="outlined"
               label="Name"
@@ -36,9 +74,13 @@ export default function Company(props) {
                 props.handleOnChange(e, "name", props.setCompany)
               }
             />
+            <HelperText type="error" visible={errorsCompany.name !== null}>
+              {errorsCompany?.name}
+            </HelperText>
           </View>
-          <View style={{ marginBottom: 10 }}>
+          <View>
             <TextInput
+              style={{ backgroundColor: "#fff" }}
               placeholder="Please enter your company email"
               mode="outlined"
               label="Email"
@@ -47,9 +89,13 @@ export default function Company(props) {
                 props.handleOnChange(e, "email", props.setCompany)
               }
             />
+            <HelperText type="error" visible={errorsCompany.email !== null}>
+              {errorsCompany?.email}
+            </HelperText>
           </View>
-          <View style={{ marginBottom: 10 }}>
+          <View>
             <TextInput
+              style={{ backgroundColor: "#fff" }}
               placeholder="Please enter your company phone number"
               mode="outlined"
               label="Phone number"
@@ -58,6 +104,13 @@ export default function Company(props) {
                 props.handleOnChange(e, "phone_number", props.setCompany)
               }
             />
+            <HelperText
+              type="error"
+              visible={errorsCompany.phone_number !== null}
+            >
+              {errorsCompany.phone_number &&
+                errorsCompany.phone_number.split("_").join(" ")}
+            </HelperText>
           </View>
         </View>
       ),
@@ -71,19 +124,25 @@ export default function Company(props) {
             minWidth: "100%",
           }}
         >
-          <View style={{ marginBottom: 10 }}>
+          <Text style={{ fontSize: 17 }}>Address</Text>
+          <View>
             <TextInput
+              style={{ backgroundColor: "#fff" }}
               placeholder="Please enter your building"
               mode="outlined"
               label="Building"
-              value={props.address.building}
+              value={props.address.place}
               onChangeText={(e) =>
                 props.handleOnChange(e, "place", props.setAddress)
               }
             />
+            <HelperText type="error" visible={errorsAddress.building !== null}>
+              {errorsAddress?.building}
+            </HelperText>
           </View>
-          <View style={{ marginBottom: 10 }}>
+          <View>
             <TextInput
+              style={{ backgroundColor: "#fff" }}
               placeholder="Please enter your address"
               mode="outlined"
               label="Address"
@@ -92,9 +151,13 @@ export default function Company(props) {
                 props.handleOnChange(e, "address", props.setAddress)
               }
             />
+            <HelperText type="error" visible={errorsAddress.address !== null}>
+              {errorsAddress?.address}
+            </HelperText>
           </View>
-          <View style={{ marginBottom: 10 }}>
+          <View>
             <TextInput
+              style={{ backgroundColor: "#fff" }}
               placeholder="Please enter your city"
               mode="outlined"
               label="City"
@@ -103,9 +166,13 @@ export default function Company(props) {
                 props.handleOnChange(e, "city", props.setAddress)
               }
             />
+            <HelperText type="error" visible={errorsAddress.city !== null}>
+              {errorsAddress?.city}
+            </HelperText>
           </View>
-          <View style={{ marginBottom: 10 }}>
+          <View>
             <TextInput
+              style={{ backgroundColor: "#fff" }}
               placeholder="Please enter your state/province"
               mode="outlined"
               label="State/Province"
@@ -114,9 +181,13 @@ export default function Company(props) {
                 props.handleOnChange(e, "province", props.setAddress)
               }
             />
+            <HelperText type="error" visible={errorsAddress.province !== null}>
+              {errorsAddress?.province}
+            </HelperText>
           </View>
-          <View style={{ marginBottom: 10 }}>
+          <View>
             <TextInput
+              style={{ backgroundColor: "#fff" }}
               placeholder="Please enter your zip code"
               mode="outlined"
               label="Zip code"
@@ -125,6 +196,9 @@ export default function Company(props) {
                 props.handleOnChange(e, "zipCode", props.setAddress)
               }
             />
+            <HelperText type="error" visible={errorsAddress.zipCode !== null}>
+              {errorsAddress?.zipCode}
+            </HelperText>
           </View>
         </View>
       ),
@@ -132,7 +206,7 @@ export default function Company(props) {
     {
       content: (
         <>
-          <Text>Business type</Text>
+          <Text style={{ fontSize: 17 }}>Business type</Text>
           <View
             style={{
               flex: 1,
@@ -165,6 +239,7 @@ export default function Company(props) {
                 {companyTypes &&
                   companyTypes.map((item, index) => (
                     <Chip
+                      style={{ flexGrow: 1 }}
                       selectedColor={MD2Colors.indigo700}
                       mode={companyType === item.id ? "flat" : "outlined"}
                       icon={companyType === item.id ? "check" : "cancel"}
@@ -202,18 +277,33 @@ export default function Company(props) {
               rowGap: 5,
             }}
           >
-            <Button
-              style={{
-                borderRadius: 5,
-              }}
-              icon="fingerprint"
-              mode="contained"
-              onPress={() => {
-                registerCompany();
-              }}
-            >
-              Register
-            </Button>
+            {!statusCompany ? (
+              <Button
+                style={{
+                  borderRadius: 5,
+                }}
+                icon="office-building"
+                mode="elevated"
+                onPress={async () => {
+                  await checkAvailabilityCompany();
+                }}
+              >
+                Check Company Availability
+              </Button>
+            ) : (
+              <Button
+                style={{
+                  borderRadius: 5,
+                }}
+                icon="fingerprint"
+                mode="elevated"
+                onPress={async () => {
+                  await registerCompany();
+                }}
+              >
+                Register
+              </Button>
+            )}
           </View>
         </>
       ),
@@ -228,176 +318,179 @@ export default function Company(props) {
     }, 2500);
   };
   const checkAvailabilityCompany = async () => {
-    return await httpHelper("GET", "check-company-availability", props.company);
-  };
-  const registerCompany = async () => {
-    const statusCompany = await checkAvailabilityCompany();
-    if (statusCompany.code !== 200) {
-      if (Object.keys(statusCompany.data.errors)[0] !== "businessId") {
+    try {
+      await httpHelper("GET", "check-company-availability", props.company);
+      setStatusCompany(true);
+    } catch (error) {
+      if (
+        error?.data?.errors &&
+        Object.keys(error.data.errors)[0] !== "businessId"
+      ) {
         wizard.current.goTo(0);
       }
-      return;
     }
-    const resultRegister = await httpHelper("POST", "register", {
-      user: { ...props.user },
-      company: { ...props.company },
-      address: { ...props.address },
-    });
-    if (resultRegister.code !== 200) {
-      switch (Object.keys(resultRegister.data.errors)[0].split(".")[0]) {
-        case "user":
-          props.setAvailableUser(false);
-          break;
-        case "company":
-          wizard.current.goTo(0);
-          break;
-        case "address":
-          wizard.current.goTo(1);
-          break;
-
-        default:
-          break;
+    return;
+  };
+  const registerCompany = async () => {
+    try {
+      let data = {
+        user: { ...props.user },
+        company: { ...props.company },
+        address: { ...props.address },
+      };
+      let resultRegister = await httpHelper("POST", "register", { ...data });
+      let user = { ...props.user };
+      props.setCompany({});
+      props.setAddress({});
+      props.setUser({});
+      props.navigation.replace("Login", { user: user });
+    } catch (error) {
+      if (error.code !== 200) {
+        switch (
+          error.data.errors &&
+          Object.keys(error.data.errors)[0].split(".")[0]
+        ) {
+          case "user":
+            props.setAvailableUser(false);
+            break;
+          case "company":
+            wizard.current.goTo(0);
+            break;
+          case "address":
+            wizard.current.goTo(1);
+            break;
+          default:
+            break;
+        }
       }
     }
   };
-
+  useEffect(() => {
+    getCompanyTypes();
+  }, [props.availableUser]);
   return (
-    <View
+    <KeyboardAvoidingView
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
       style={{
         flex: 1,
-        maxHeight: "100%",
-        flexDirection: "column",
-        width: "100%",
       }}
     >
-      <SafeAreaView>
-        <View
-          style={{
-            justifyContent: "space-between",
-            alignItems: "center",
-            flexDirection: "row",
-            backgroundColor: "#FFF",
-          }}
-        >
-          <Button
-            buttonColor={
-              !isFirstStep ? MD2Colors.indigo300 : MD2Colors.indigo100
-            }
-            textColor={MD2Colors.white}
-            rippleColor={MD2Colors.indigo100}
-            onPress={() => (!isFirstStep ? wizard.current.prev() : null)}
-          >
-            Prev
-          </Button>
-          <Text>{currentStep + 1}. Step</Text>
-          <Button
-            buttonColor={
-              !isLastStep ? MD2Colors.indigo300 : MD2Colors.indigo100
-            }
-            textColor={MD2Colors.white}
-            rippleColor={MD2Colors.indigo100}
-            onPress={() => (!isLastStep ? wizard.current.next() : null)}
-          >
-            Next
-          </Button>
-        </View>
-      </SafeAreaView>
       <View
         style={{
+          flex: 1,
+          maxHeight: "100%",
           flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "center",
+          width: "100%",
         }}
       >
-        <Wizard
-          ref={wizard}
-          steps={stepList}
-          isFirstStep={(val) => setIsFirstStep(val)}
-          isLastStep={(val) => setIsLastStep(val)}
-          nextStepAnimation="slideRight"
-          prevStepAnimation="slideLeft"
-          currentStep={({ currentStep, isLastStep, isFirstStep }) => {
-            if (isLastStep) {
-              getCompanyTypes();
-            }
-            setCurrentStep(currentStep);
+        <SafeAreaView>
+          <View
+            style={{
+              justifyContent: "space-between",
+              alignItems: "center",
+              flexDirection: "row",
+              backgroundColor: "#FFF",
+            }}
+          >
+            <Button
+              buttonColor={
+                !isFirstStep ? MD2Colors.indigo300 : MD2Colors.indigo100
+              }
+              textColor={MD2Colors.white}
+              rippleColor={MD2Colors.indigo100}
+              mode="elevated"
+              onPress={() => (!isFirstStep ? wizard.current.prev() : null)}
+            >
+              Prev
+            </Button>
+            <Text>{currentStep + 1}. Step</Text>
+            <Button
+              buttonColor={
+                !isLastStep ? MD2Colors.indigo300 : MD2Colors.indigo100
+              }
+              textColor={MD2Colors.white}
+              rippleColor={MD2Colors.indigo100}
+              mode="elevated"
+              onPress={async () => {
+                if (!isLastStep) {
+                  if (currentStep === 0) {
+                    setErrorsCompany({
+                      name: null,
+                      email: null,
+                      phone_number: null,
+                    });
+                    try {
+                      await companySchema.validate(
+                        { ...props.company },
+                        {
+                          abortEarly: false,
+                        }
+                      );
+                      wizard.current.next();
+                    } catch (error) {
+                      error.errors.map((err) => {
+                        const key = err.match(/(\w{1,})\ /);
+                        setErrorsCompany((prevState) => ({
+                          ...prevState,
+                          [key[1]]: err,
+                        }));
+                      });
+                    }
+                  } else if (currentStep === 1) {
+                    setErrorsAddress({
+                      place: null,
+                      address: null,
+                      city: null,
+                      province: null,
+                      zipCode: null,
+                    });
+                    try {
+                      await addressSchema.validate(
+                        { ...props.address },
+                        {
+                          abortEarly: false,
+                        }
+                      );
+                      wizard.current.next();
+                    } catch (error) {
+                      error.errors.map((err) => {
+                        const key = err.match(/(\w{1,})\ /);
+                        setErrorsAddress((prevState) => ({
+                          ...prevState,
+                          [key[1]]: err,
+                        }));
+                      });
+                    }
+                  }
+                } else {
+                  null;
+                }
+              }}
+            >
+              Next
+            </Button>
+          </View>
+        </SafeAreaView>
+        <View
+          style={{
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
           }}
-        />
+        >
+          <Wizard
+            ref={wizard}
+            steps={stepList}
+            isFirstStep={(val) => setIsFirstStep(val)}
+            isLastStep={(val) => setIsLastStep(val)}
+            nextStepAnimation="slideRight"
+            prevStepAnimation="slideLeft"
+            currentStep={async ({ currentStep, isLastStep, isFirstStep }) => {
+              setCurrentStep(currentStep);
+            }}
+          />
+        </View>
       </View>
-    </View>
-    // <Formik initialValues={props.user} onSubmit={props.checkAvailabilityUser}>
-    //   <View
-    //     style={{
-    //       flex: 1,
-    //       height: "100%",
-    //       flexDirection: "column",
-    //       width: "100%",
-    //     }}
-    //   >
-    //     <View style={{ width: "100%" }}>
-    //       <Text style={{ fontSize: 14 }}>Company Address</Text>
-    //     </View>
-    //     <Divider bold={true} />
-    //     <View style={{ marginBottom: 10, width: "100%" }}>
-    //       <TextInput
-    //         placeholder="Please enter your building"
-    //         mode="outlined"
-    //         label="Building"
-    //         value={props.company.building}
-    //         onChangeText={(e) => props.handleOnChange(e, "building")}
-    //       />
-    //     </View>
-    //     <View style={{ marginBottom: 10, width: "100%" }}>
-    //       <TextInput
-    //         placeholder="Please enter your address"
-    //         mode="outlined"
-    //         label="Address"
-    //         value={props.company.address}
-    //         onChangeText={(e) => props.handleOnChange(e, props.setAddress)}
-    //       />
-    //     </View>
-    //     <View style={{ marginBottom: 10, width: "100%" }}>
-    //       <TextInput
-    //         placeholder="Please enter your city"
-    //         mode="outlined"
-    //         label="City"
-    //         value={props.company.city}
-    //         onChangeText={(e) => props.handleOnChange(e, "city")}
-    //       />
-    //     </View>
-    //     <View style={{ marginBottom: 10, width: "100%" }}>
-    //       <TextInput
-    //         placeholder="Please enter your state/province"
-    //         mode="outlined"
-    //         label="State/Province"
-    //         value={props.company.province}
-    //         onChangeText={(e) => props.handleOnChange(e, "province")}
-    //       />
-    //     </View>
-    //     <View style={{ marginBottom: 10, width: "100%" }}>
-    //       <TextInput
-    //         placeholder="Please enter your zip code"
-    //         mode="outlined"
-    //         label="Zip code"
-    //         value={props.company.zipCode}
-    //         onChangeText={(e) => props.handleOnChange(e, "zipCode")}
-    //       />
-    //     </View>
-    //     <View
-    //       style={{ flex: 1, flexDirection: "column", width: "100%", rowGap: 5 }}
-    //     >
-    //       <Button
-    //         style={{
-    //           borderRadius: 5,
-    //         }}
-    //         icon="fingerprint"
-    //         mode="contained"
-    //         onPress={() => checkAvailabilityCompany()}
-    //       >
-    //         Register
-    //       </Button>
-    //     </View>
-    //   </View>
-    // </Formik>
+    </KeyboardAvoidingView>
   );
 }

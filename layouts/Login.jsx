@@ -1,104 +1,172 @@
-import { Image, ScrollView, Text, ToastAndroid, View } from "react-native";
-import { SafeAreaProvider } from "react-native-safe-area-context";
+import {
+  Image,
+  Keyboard,
+  KeyboardAvoidingView,
+  Platform,
+  TouchableWithoutFeedback,
+  View,
+} from "react-native";
+import {
+  Button,
+  HelperText,
+  TextInput,
+  Text,
+  useTheme,
+} from "react-native-paper";
+import React, { useState } from "react";
+import InputPassword from "../components/Input/InputPassword";
+import {
+  httpHelper,
+  handleChange,
+  downloadOrCahceFile,
+} from "../helpers/HttpHelper";
+import * as yup from "yup";
+import * as SecureStore from "expo-secure-store";
 import { useNavigation } from "@react-navigation/native";
-import { Button, TextInput } from "react-native-paper";
-import React from "react";
-import InputPassword from "../components/InputPassword";
+import { CONFIG, log } from "../config";
 
 export default function Login() {
-  let navigation = useNavigation();
+  const [errorsMessage, setErrorsMessage] = useState({});
+  const [loginData, setLoginData] = useState({
+    username: "",
+    password: "",
+  });
+  const theme = useTheme();
+  const navigation = useNavigation();
+
+  const loginSchema = yup.object({
+    username: yup
+      .string()
+      .required("Username is required")
+      .min(CONFIG.VALIDATION.USERNAME.MIN_LENGTH)
+      .max(CONFIG.VALIDATION.USERNAME.MAX_LENGTH),
+    password: yup
+      .string()
+      .required("Password is required")
+      .min(CONFIG.VALIDATION.PASSWORD.MIN_LENGTH)
+      .max(CONFIG.VALIDATION.PASSWORD.MAX_LENGTH),
+  });
+  const ProcessAuth = async () => {
+    setErrorsMessage({});
+    const newErrors = {};
+    try {
+      await loginSchema.validate(loginData, { abortEarly: false });
+
+      let result = await httpHelper("POST", "auth/login", loginData);
+      await SecureStore.deleteItemAsync(CONFIG.STORAGE.TOKEN);
+      await SecureStore.setItemAsync(CONFIG.STORAGE.TOKEN, result.data.token);
+      if (result.data.user.user.profile_picture) {
+        result.data.user.user.profile_picture = await downloadOrCahceFile(
+          CONFIG.API.ASSET_BASE_URL +
+            "/customer-profile-picture/" +
+            result.data.user.user.profile_picture,
+          "customer-profile-picture",
+          result.data.user.user.profile_picture
+        );
+        await SecureStore.deleteItemAsync(CONFIG.STORAGE.USER);
+        await SecureStore.setItemAsync(
+          CONFIG.STORAGE.USER,
+          JSON.stringify(result.data.user)
+        );
+      }
+      console.log(result.data.user);
+      navigation.replace("Main");
+    } catch (error) {
+      console.log(error);
+      if (error.inner) {
+        error.inner.forEach((err) => {
+          newErrors[err.path] = err.message;
+        });
+      }
+    }
+    setErrorsMessage(newErrors);
+  };
+
   return (
-    <SafeAreaProvider>
-      <ScrollView>
+    <KeyboardAvoidingView
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      style={{ flex: 1 }}
+    >
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <View
           style={{
             flex: 1,
-            flexWrap: "wrap",
-            columnGap: 3,
-            flexDirection: "column",
-            padding: 20,
-            justifyContent: "center",
+            padding: 24,
+            justifyContent: "space-around",
             alignItems: "center",
-            backgroundColor: "white",
-            minHeight: "100%",
           }}
         >
           <View
-            style={{
-              flex: 1,
-              width: "100%",
-              maxWidth: 200,
-              maxHeight: 300,
-            }}
+            style={{ flex: 1, width: "100%", maxWidth: 200, maxHeight: 300 }}
           >
             <Image
               source={require("../assets/login-image.png")}
               style={{
-                objectFit: "contain",
+                resizeMode: "contain",
                 width: "100%",
                 height: "100%",
               }}
             />
           </View>
-          <View
-            style={{
-              flex: 1,
-              height: "100%",
-              flexDirection: "column",
-              width: "100%",
-            }}
-          >
-            <View style={{ marginBottom: 10, width: "100%" }}>
-              <TextInput
-                autoFocus={true}
-                accessibilityLabel="input"
-                accessibilityLabelledBy="username"
-                placeholder="Please enter your username"
-                label="Username/Email/Phone number"
-                mode="outlined"
-              />
-            </View>
-            <InputPassword />
-            <View
-              style={{
-                flex: 1,
-                flexDirection: "column",
-                width: "100%",
-                rowGap: 5,
-              }}
-            >
+
+          <View style={{ flex: 1, width: "100%" }}>
+            <TextInput
+              style={{ backgroundColor: "#fff" }}
+              value={loginData.username}
+              onChangeText={(e) => handleChange(e, "username", setLoginData)}
+              outlineColor={theme.colors.primary}
+              outlineStyle={{ borderWidth: 1.5 }}
+              label="Username/Email/Phone number"
+              mode="outlined"
+              placeholder="Enter your username"
+            />
+            <HelperText type="error" visible={!!errorsMessage.username}>
+              {errorsMessage.username}
+            </HelperText>
+
+            {/* Password */}
+            <InputPassword
+              handleChange={handleChange}
+              title="Password"
+              stateFn={setLoginData}
+              error={!!errorsMessage.password}
+              errorMessage={errorsMessage.password}
+            />
+
+            <View style={{ flexDirection: "column", width: "100%", rowGap: 8 }}>
               <Button
+                buttonColor={theme.colors.primaryContainer}
+                textColor="black"
                 icon="fingerprint"
                 mode="contained"
+                onPress={ProcessAuth}
                 style={{
-                  borderRadius: 5,
-                }}
-                onPress={() => {
-                  ToastAndroid.show("Under Development", ToastAndroid.SHORT);
+                  borderColor: theme.colors.primary,
+                  borderWidth: 2,
+                  borderRadius: 8,
                 }}
               >
-                <Text style={{ textAlign: "center", color: "#fff" }}>
-                  Login
-                </Text>
+                Login
               </Button>
+
               <Button
                 icon="account-plus"
                 mode="contained"
+                buttonColor={theme.colors.primaryContainer}
+                textColor="black"
+                onPress={() => navigation.navigate("Register")}
                 style={{
-                  borderRadius: 5,
-                }}
-                onPress={() => {
-                  navigation.navigate("Register");
+                  borderColor: theme.colors.primary,
+                  borderWidth: 2,
+                  borderRadius: 8,
                 }}
               >
-                <Text style={{ textAlign: "center", color: "#fff" }}>
-                  Register
-                </Text>
+                Register
               </Button>
             </View>
           </View>
         </View>
-      </ScrollView>
-    </SafeAreaProvider>
+      </TouchableWithoutFeedback>
+    </KeyboardAvoidingView>
   );
 }

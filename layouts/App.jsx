@@ -25,6 +25,7 @@ import Product from "./Product/Product";
 import ChangeProduct from "./Product/ChangeProduct";
 import { BlurView } from "expo-blur";
 import { CONFIG } from "../config";
+import UnderMaintenance from "./UnderMaintenance";
 
 const configToast = {
   success: (props) => (
@@ -83,7 +84,7 @@ const theme = {
     onError: "rgb(255, 255, 255)",
     errorContainer: "rgb(255, 218, 214)",
     onErrorContainer: "rgb(65, 0, 2)",
-    background: "rgb(255, 251, 255)",
+    background: "rgb(255, 255, 255)",
     onBackground: "rgb(28, 27, 31)",
     surface: "rgb(255, 251, 255)",
     onSurface: "rgb(28, 27, 31)",
@@ -174,13 +175,13 @@ function HomeTab() {
         },
         tabBarActiveTintColor: theme.colors.primary,
         headerShown: false,
-        tabBarInactiveTintColor: "black",
+        tabBarInactiveTintColor: theme.colors.backdrop,
         tabBarBackground: () => (
           <BlurView
             intensity={0.5}
             style={{
               flex: 1,
-              backgroundColor: theme.colors.primaryContainer,
+              backgroundColor: theme.colors.background,
             }}
           />
         ),
@@ -200,6 +201,7 @@ function RootStack() {
       <Stack.Screen name="Splash" component={Splash} />
       <Stack.Screen name="Login" component={Login} />
       <Stack.Screen name="Register" component={Register} />
+      <Stack.Screen name="UnderMaintenance" component={UnderMaintenance} />
       <Stack.Screen name="Main" component={HomeTab} />
       <Stack.Screen name="ProfileUser" component={ProfileUser} />
       <Stack.Screen name="ProfileCompany" component={ProfileCompany} />

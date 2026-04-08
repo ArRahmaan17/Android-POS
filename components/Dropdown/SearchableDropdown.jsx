@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   View,
   TouchableOpacity,
@@ -28,9 +28,13 @@ export default function SearchableDropdown({
   const theme = useTheme();
   const [visible, setVisible] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-
-  const filteredOptions = options.filter((option) =>
-    option.toLowerCase().includes(searchQuery.toLowerCase())
+  const selectedOption = options.find((option) => option.id === value);
+  const filteredOptions = useMemo(
+    () =>
+      options.filter((option) =>
+        option.name.toLowerCase().includes(searchQuery.toLowerCase())
+      ),
+    [options, searchQuery]
   );
 
   const handleSelect = (selectedValue) => {
@@ -56,25 +60,25 @@ export default function SearchableDropdown({
         styles.optionItem,
         {
           backgroundColor:
-            item === value ? theme.colors.primaryContainer : "transparent",
+            item.id === value ? theme.colors.primaryContainer : "transparent",
         },
       ]}
-      onPress={() => handleSelect(item)}
+      onPress={() => handleSelect(item.id)}
     >
       <Text
         style={[
           styles.optionText,
           {
             color:
-              item === value
+              item.id === value
                 ? theme.colors.onPrimaryContainer
                 : theme.colors.onSurface,
           },
         ]}
       >
-        {item}
+        {item.name}
       </Text>
-      {item === value && (
+      {item.id === value && (
         <IconButton
           icon="check"
           size={20}
@@ -83,7 +87,6 @@ export default function SearchableDropdown({
       )}
     </TouchableOpacity>
   );
-
   return (
     <>
       <TouchableOpacity
@@ -120,7 +123,7 @@ export default function SearchableDropdown({
               },
             ]}
           >
-            {value || placeholder}
+            {selectedOption ? selectedOption.name : placeholder}
           </Text>
           <IconButton
             icon="chevron-down"
@@ -200,10 +203,11 @@ export default function SearchableDropdown({
 
 const styles = StyleSheet.create({
   dropdownInput: {
-    marginBottom: 16,
+    marginTop: 6,
+    marginBottom: 10,
     borderWidth: 1,
     borderRadius: 4,
-    padding: 16,
+    padding: 10,
   },
   dropdownLabel: {
     fontSize: 12,

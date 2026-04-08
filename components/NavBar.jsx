@@ -10,10 +10,10 @@ import {
   TouchableRipple,
   useTheme,
 } from "react-native-paper";
-import { buatSingkatan } from "../helpers/TextHelper";
+import { buatSingkatan } from "../helpers/ConvertHelper";
 import { CONFIG } from "../config";
 import * as SecureStore from "expo-secure-store";
-import { downloadOrCahceFile, httpHelper } from "../helpers/HttpHelper";
+import { downloadOrCacheFile, httpHelper } from "../helpers/HttpHelper";
 import { useNavigation } from "@react-navigation/native";
 export default function NavBar() {
   const theme = useTheme();
@@ -103,13 +103,9 @@ export default function NavBar() {
     hideModal();
     let resultCompanyUser = await httpHelper("GET", "auth/customer-companies");
     resultCompanyUser.data.data.forEach(async (company, index) => {
-      resultCompanyUser.data.data[index].picture = await downloadOrCahceFile(
-        CONFIG.API.ASSET_BASE_URL +
-          "/" +
-          CONFIG.FILE_SYSTEM.COMPANY_PICTURE_CACHE +
-          "/" +
-          company.picture,
-        CONFIG.FILE_SYSTEM.COMPANY_PICTURE_CACHE,
+      resultCompanyUser.data.data[index].picture = await downloadOrCacheFile(
+        `${CONFIG.API.ASSET_BASE_URL}/${CONFIG.FILE_SYSTEM.CACHE.COMPANY_PICTURE_CACHE}/${company.picture}`,
+        CONFIG.FILE_SYSTEM.CACHE.COMPANY_PICTURE_CACHE,
         company.picture
       );
     });
@@ -174,7 +170,7 @@ export default function NavBar() {
           shadowOffset: { width: 0, height: 2 },
           shadowOpacity: 0.25,
           shadowRadius: 3.84,
-          backgroundColor: theme.colors.primaryContainer,
+          backgroundColor: theme.colors.background,
         }}
       >
         <Card.Content
@@ -191,10 +187,17 @@ export default function NavBar() {
             onPress={() => {
               navigation.navigate("ProfileUser");
             }}
-            style={{ flexGrow: 1 }}
+            style={{
+              flexGrow: 1,
+            }}
           >
-            <Text variant="labelSmall" style={{ textTransform: "capitalize" }}>
-              {user?.user?.name?.replace(/\ [\a-zA-z]{0,}/s, "")}
+            <Text
+              variant="labelSmall"
+              style={{
+                textTransform: "capitalize",
+              }}
+            >
+              {user.user.name?.replace(/\ [\a-zA-z]{0,}/s, "")}
             </Text>
           </TouchableRipple>
           <Text

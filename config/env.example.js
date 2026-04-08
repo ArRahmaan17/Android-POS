@@ -19,10 +19,10 @@ export const ENV_CONFIG = {
   CACHE_DIRECTORY: 'cache',
   PROFILE_PICTURE_CACHE: 'profile_pictures',
   PRODUCT_PICTURE_CACHE: 'product_pictures',
+  DEFAULT_DEBOUNCE_TIME: 1000,
   // Toast Messages
   TOAST_DURATION: 3000,
   TOAST_POSITION: 'top',
-  DEFAULT_DEBOUNCE_TIME: 1000,
 
   // Development
   DEBUG_MODE: true,

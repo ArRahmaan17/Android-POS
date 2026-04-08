@@ -1,4 +1,4 @@
-import React, { ScrollView, StyleSheet } from "react-native";
+import React, { Image, ScrollView, StyleSheet } from "react-native";
 import { View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
@@ -13,17 +13,34 @@ import {
 } from "react-native-paper";
 import { useEffect, useState } from "react";
 import * as SecureStore from "expo-secure-store";
-import { phone_number } from "../../helpers/TextHelper";
+import { phone_number } from "../../helpers/ConvertHelper";
 import { CONFIG } from "../../config";
+import { downloadOrCacheFile } from "../../helpers/HttpHelper";
+import * as FileSystem from "expo-file-system";
 export default function Profile({ navigation }) {
   const theme = useTheme();
   const [confirmDelete, setConfirmDelete] = useState();
   const [me, setMe] = useState({});
   useEffect(() => {
     (async () => {
-      setMe(JSON.parse(await SecureStore.getItemAsync(CONFIG.STORAGE.USER)));
+      let userLogged = JSON.parse(SecureStore.getItem(CONFIG.STORAGE.USER));
+      const statusFile = await FileSystem.getInfoAsync(
+        userLogged.user.profile_picture
+      );
+      if (!statusFile.exists) {
+        userLogged.user.profile_picture = await downloadOrCacheFile(
+          CONFIG.API.ASSET_BASE_URL +
+            "/" +
+            CONFIG.FILE_SYSTEM.CACHE.PROFILE_PICTURE_CACHE +
+            "/" +
+            userLogged.user.profile_picture,
+          CONFIG.FILE_SYSTEM.CACHE.PROFILE_PICTURE_CACHE,
+          userLogged.user.profile_picture
+        );
+      }
+      setMe(userLogged);
     })();
-  }, [me]);
+  }, []);
   return (
     <ScrollView>
       <SafeAreaView>
@@ -35,7 +52,8 @@ export default function Profile({ navigation }) {
             style={{
               ...styles.card,
               backgroundColor: theme.colors.inverseOnSurface,
-              marginBottom: 10,
+              borderColor: theme.colors.backdrop,
+              borderWidth: 1.5,
             }}
           >
             <Card.Content style={styles.cardContent}>
@@ -51,16 +69,11 @@ export default function Profile({ navigation }) {
                   borderless={true}
                   style={{
                     ...styles.imageContainer,
-                    borderColor: theme.colors.secondary,
-                    borderWidth: 2,
                   }}
                 >
-                  <Avatar.Image
-                    source={
-                      !me.user?.profile_picture
-                        ? require("../../assets/0.jpg")
-                        : { uri: me.user?.profile_picture }
-                    }
+                  <Image
+                    source={{ uri: me.user?.profile_picture }}
+                    style={{ width: 50, height: 50 }}
                   />
                 </TouchableRipple>
                 <View>
@@ -88,8 +101,7 @@ export default function Profile({ navigation }) {
                     ...styles.card,
                     backgroundColor: theme.colors.warningContainer,
                     borderColor: theme.colors.warning,
-                    borderWidth: 2,
-                    marginBottom: 10,
+                    borderWidth: 1.5,
                   }}
                 >
                   <Card.Content style={styles.cardContent}>
@@ -112,21 +124,13 @@ export default function Profile({ navigation }) {
                         Administrator User Only
                       </Text>
                       <TouchableRipple
-                        borderless={true}
                         style={{
                           ...styles.imageContainer,
-                          borderColor: theme.colors.secondary,
-                          borderWidth: 2,
                         }}
                       >
-                        <Avatar.Image
-                          source={
-                            !me.company?.picture
-                              ? require("../../assets/0.jpg")
-                              : {
-                                  uri: me.company?.picture,
-                                }
-                          }
+                        <Image
+                          source={{ uri: me.company?.picture }}
+                          style={{ width: 50, height: 50 }}
                         />
                       </TouchableRipple>
                       <View>
@@ -208,7 +212,7 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: "column",
     justifyContent: "space-around",
-    paddingHorizontal: 23,
+    paddingHorizontal: 10,
   },
   card: {
     marginTop: 16,
@@ -227,7 +231,7 @@ const styles = StyleSheet.create({
   dangerCard: {
     borderRadius: 12,
     borderColor: "red",
-    borderWidth: 2,
+    borderWidth: 1.5,
     marginTop: 16,
   },
   imageContainer: {
@@ -235,23 +239,11 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     marginVertical: 5,
     borderRadius: 50,
-    objectFit: "fill",
     width: 50,
     height: 50,
   },
-  placeholder: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    borderColor: "#ccc",
-    borderWidth: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  saveButton: {
-    marginTop: 10,
-  },
   dangerBtn: {
     marginTop: 10,
+    borderRadius: 8,
   },
 });

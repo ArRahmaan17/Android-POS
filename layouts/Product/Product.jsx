@@ -3,30 +3,44 @@ import { FlatList, Image, View, TouchableOpacity } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Text, useTheme, IconButton, Badge, Icon } from "react-native-paper";
 import HeaderSearch from "../../components/HeaderSearch";
-import { debounce, formatPrice } from "../../helpers/TextHelper";
+import {
+  debounce,
+  formatPrice,
+  removeTandaHubung,
+  capitalizeFirstLetter,
+  toKebabCase,
+} from "../../helpers/ConvertHelper";
 import { LinearGradient } from "expo-linear-gradient";
 import {
   httpHelper,
-  downloadOrCahceFile,
+  downloadOrCacheFile,
   removeDuplicate,
 } from "../../helpers/HttpHelper";
 import CONFIG from "../../config";
 import Fab from "../../components/Button/Fab";
+import { useFocusEffect } from "@react-navigation/native";
 export default function Product({ navigation }) {
   const [startId, setStartId] = useState(0);
   const [tempProduct, setTempProduct] = useState({ data: [] });
   const [product, setProduct] = useState({ data: [] });
-  const [selectedCategory, setSelectedCategory] = useState("All");
-  const [sortBy, setSortBy] = useState(null);
-  const [sortOrder, setSortOrder] = useState("asc");
+  const [selectedCategory, setSelectedCategory] = useState(
+    CONFIG.DEFAULT.CATEGORY
+  );
+  const [sortBy, setSortBy] = useState("id");
+  const [sortOrder, setSortOrder] = useState("desc");
   const [clearFilter, setClearFilter] = useState(false);
-  const [categories, setCategories] = useState(["All"]);
-  const sortOptions = [
+  const [categories, setCategories] = useState([
+    {
+      key: CONFIG.DEFAULT.CATEGORY.toLowerCase(),
+      label: CONFIG.DEFAULT.CATEGORY,
+    },
+  ]);
+  const [sortOptions, setSortOptions] = useState([
     { key: "name", label: "Name" },
     { key: "price", label: "Price" },
     { key: "stock", label: "Stock" },
     { key: "status", label: "Status" },
-  ];
+  ]);
   const [productSelected, setProductSelected] = useState(null);
   function ProductItem({ item, theme }) {
     const getStatusColor = (status) => {
@@ -35,12 +49,6 @@ export default function Product({ navigation }) {
         : status === "draft"
         ? theme.colors.warningContainer
         : theme.colors.errorContainer;
-    };
-
-    const getStockColor = (stock) => {
-      if (stock === 0) return "#F44336";
-      if (stock <= 10) return "#FF9800";
-      return "#4CAF50";
     };
     return (
       <TouchableOpacity
@@ -52,7 +60,7 @@ export default function Product({ navigation }) {
           borderBottomColor: "#eee",
           backgroundColor:
             item.status === "publish"
-              ? "#fff"
+              ? "white"
               : item.status === "draft"
               ? theme.colors.warningContainer
               : theme.colors.errorContainer,
@@ -114,7 +122,7 @@ export default function Product({ navigation }) {
             style={{
               flexDirection: "row",
               alignItems: "center",
-              gap: 12,
+              gap: 8,
               justifyContent:
                 productSelected && productSelected.id === item.id
                   ? "space-between"
@@ -130,7 +138,7 @@ export default function Product({ navigation }) {
               {formatPrice(item.price)}
             </Text>
             <View
-              style={{ flexDirection: "row", alignItems: "center", gap: 12 }}
+              style={{ flexDirection: "row", alignItems: "center", gap: 10 }}
             >
               <View style={{ flexDirection: "row", alignItems: "center" }}>
                 <View
@@ -144,40 +152,26 @@ export default function Product({ navigation }) {
                 />
                 <Text
                   style={{
-                    fontSize: 8,
+                    fontSize: 10,
                     textTransform: "capitalize",
                   }}
                 >
                   {item.status}
                 </Text>
               </View>
-              <View style={{ flexDirection: "row", alignItems: "center" }}>
-                <Text style={{ fontSize: 8, color: "#666", marginRight: 4 }}>
-                  Stok:
-                </Text>
-                <Text
-                  style={{
-                    fontSize: 8,
-                    color: getStockColor(item.stock),
-                    fontWeight: "600",
-                  }}
-                >
-                  {item.stock}
-                </Text>
-              </View>
+              <Text style={{ fontSize: 10, marginRight: 4 }}>
+                Stok: {item.stock}
+              </Text>
             </View>
             {productSelected && productSelected?.id === item.id && (
               <View
                 style={{
                   flexDirection: "row",
-                  marginRight: -10,
-                  alignItems: "flex-end",
-                  justifyContent: "center",
                 }}
               >
                 <IconButton
-                  icon="pencil"
-                  size={12}
+                  icon="pencil-outline"
+                  size={15}
                   onPress={() => navigation.navigate("ChangeProduct", { item })}
                   compact={true}
                   iconColor={theme.colors.onWarningContainer}
@@ -185,8 +179,8 @@ export default function Product({ navigation }) {
                   containerColor={theme.colors.warningContainer}
                 />
                 <IconButton
-                  icon="delete"
-                  size={12}
+                  icon="delete-outline"
+                  size={15}
                   compact={true}
                   iconColor={theme.colors.onErrorContainer}
                   onPress={() => handleDelete(item)}
@@ -202,7 +196,13 @@ export default function Product({ navigation }) {
   }
   function TemporaryProductItem({ item, theme }) {
     return (
-      <View style={{ flex: 1, padding: 5 }}>
+      <View
+        style={{
+          flex: 1,
+          padding: 5,
+          backgroundColor: theme.colors.background,
+        }}
+      >
         <View
           style={{
             padding: 5,
@@ -210,10 +210,15 @@ export default function Product({ navigation }) {
             borderRadius: 12,
           }}
         >
-          <Text style={{ fontSize: 14, marginBottom: 2 }}>
-            📅 Date: {item?.transaction_created}
+          <Text
+            style={{
+              marginBottom: 2,
+            }}
+            variant="titleMedium"
+          >
+            <Icon source="calendar" size={20} /> {item?.transaction_created}
           </Text>
-          <Text style={{ fontSize: 15, fontWeight: "800", marginBottom: 2 }}>
+          <Text style={{ marginBottom: 2 }} variant="titleMedium">
             Changed Product:
           </Text>
           <View
@@ -224,15 +229,15 @@ export default function Product({ navigation }) {
               gap: 12,
               marginBottom: 5,
               padding: 5,
-              backgroundColor: "#f9f9f9",
+              backgroundColor: theme.colors.background,
               borderRadius: 8,
               borderWidth: 1,
-              borderColor: "#ddd",
+              borderColor: theme.colors.outline,
             }}
           >
             <Text style={{ fontSize: 14 }}>
               <Icon
-                source="database-plus-outline"
+                source="database-plus"
                 size={15}
                 color={theme.colors.success}
               />{" "}
@@ -240,7 +245,7 @@ export default function Product({ navigation }) {
             </Text>
             <Text style={{ fontSize: 14 }}>
               <Icon
-                source="database-sync-outline"
+                source="database-sync"
                 size={15}
                 color={theme.colors.warning}
               />{" "}
@@ -248,7 +253,7 @@ export default function Product({ navigation }) {
             </Text>
             <Text style={{ fontSize: 14 }}>
               <Icon
-                source="database-minus-outline"
+                source="database-minus"
                 size={15}
                 color={theme.colors.error}
               />{" "}
@@ -259,7 +264,7 @@ export default function Product({ navigation }) {
             <LinearGradient
               colors={
                 prod.status_transaction === "IN"
-                  ? [theme.colors.success, theme.colors.successContainer]
+                  ? [theme.colors.primary, theme.colors.primaryContainer]
                   : prod.status_transaction === "RESTOCK"
                   ? [theme.colors.warning, theme.colors.warningContainer]
                   : [theme.colors.error, theme.colors.errorContainer]
@@ -270,61 +275,118 @@ export default function Product({ navigation }) {
               style={{
                 padding: 2,
                 marginBottom: 5,
-                borderRadius: 12,
+                borderRadius: 10,
               }}
             >
               <View
                 style={{
-                  backgroundColor: "#fff",
-                  borderRadius: 10,
+                  backgroundColor: theme.colors.background,
+                  borderTopRightRadius: 8,
+                  borderTopLeftRadius: 8,
+                  padding: 5,
+                  flexDirection: "row",
+                }}
+              >
+                <View
+                  style={{
+                    height: 100,
+                    width: 100,
+                  }}
+                >
+                  <Image
+                    source={{ uri: prod.picture }}
+                    style={{
+                      width: "100%",
+                      height: "100%",
+                    }}
+                    resizeMode="contain"
+                  />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text
+                    style={{
+                      fontSize: 16,
+                      fontWeight: "700",
+                    }}
+                  >
+                    {prod.name}
+                  </Text>
+                  <Text
+                    style={{
+                      fontSize: 14,
+                      marginTop: 4,
+                    }}
+                  >
+                    Stock: {prod.stock}
+                  </Text>
+                  <Text
+                    style={{
+                      fontSize: 14,
+                    }}
+                  >
+                    Price: {formatPrice(prod.price)}
+                  </Text>
+                  <Text
+                    style={{
+                      fontSize: 14,
+                    }}
+                  >
+                    Unit: {prod.unit?.name}
+                  </Text>
+                </View>
+              </View>
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  marginTop: 2,
+                  backgroundColor: theme.colors.background,
+                  borderBottomRightRadius: 8,
+                  borderBottomLeftRadius: 8,
                   padding: 5,
                 }}
               >
-                <Text
+                <View
                   style={{
-                    fontSize: 16,
-                    fontWeight: "700",
+                    flexDirection: "row",
+                    alignItems: "center",
                   }}
                 >
-                  {prod.name}
-                </Text>
-                <Text
-                  style={{
-                    fontSize: 14,
-                    marginTop: 4,
-                  }}
-                >
-                  Stock: {prod.stock}
-                </Text>
-                <Text
-                  style={{
-                    fontSize: 14,
-                  }}
-                >
-                  Price: {formatPrice(prod.price)}
-                </Text>
-                <Text
-                  style={{
-                    fontSize: 14,
-                  }}
-                >
-                  Unit: {prod.unit?.name}
-                </Text>
-                <Text
-                  style={{
-                    fontSize: 13,
-                  }}
-                >
-                  👤 Created by: {prod.creater?.name}
-                </Text>
-                {prod.accepter && (
+                  <Icon
+                    source="plus-circle"
+                    size={20}
+                    color={theme.colors.success}
+                  />
                   <Text
                     style={{
                       fontSize: 13,
                     }}
                   >
-                    ✅ Accepted by: {prod.accepter?.name}
+                    {capitalizeFirstLetter(prod.creater?.name)}
                   </Text>
+                </View>
+                {prod.accepter && (
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      // gap: 12,
+                    }}
+                  >
+                    <Icon
+                      source="check-circle"
+                      size={20}
+                      color={theme.colors.warning}
+                    />
+                    <Text
+                      style={{
+                        fontSize: 13,
+                      }}
+                    >
+                      {capitalizeFirstLetter(prod.accepter?.name)}
+                    </Text>
+                  </View>
                 )}
               </View>
             </LinearGradient>
@@ -335,14 +397,17 @@ export default function Product({ navigation }) {
   }
   const [refreshing, setRefreshing] = useState(false);
   const onRefresh = useCallback(async () => {
-    if (!refreshing) {
+    if (
+      !refreshing &&
+      (productView ? product.data.length > 0 : tempProduct.data.length > 0)
+    ) {
       productView ? setProduct({ data: [] }) : setTempProduct({ data: [] });
       setRefreshing(true);
       await getProduct({
         start: 0,
         length: 5,
-        order: { dir: "desc", name: "name" },
-        search: "",
+        order: { dir: sortOrder, name: sortBy },
+        search: tempSearch,
         firstRequest: true,
       });
       setRefreshing(false);
@@ -350,140 +415,7 @@ export default function Product({ navigation }) {
   });
   const [search, setSearch] = useState(null);
   const [tempSearch, setTempSearch] = useState("");
-  const filteredProduct = useMemo(() => {
-    return (
-      product.data &&
-      product.data
-        .filter((item) => {
-          const categoryMatch =
-            selectedCategory === "All" || item?.type === selectedCategory;
-          const searchLower = tempSearch.toLowerCase();
-          const nameMatch = item.name.toLowerCase().includes(searchLower);
-
-          const statusMatch =
-            (searchLower.includes("publish") && item.status === "publish") ||
-            (searchLower.includes("draft") && item.status === "draft") ||
-            (searchLower.includes("archive") && item.status === "archive");
-
-          const priceMatch =
-            item.price.toString().includes(tempSearch) ||
-            formatPrice(item.price).toLowerCase().includes(searchLower) ||
-            (searchLower.includes("rp") &&
-              formatPrice(item.price).toLowerCase().includes(searchLower)) ||
-            (searchLower.includes("rupiah") &&
-              formatPrice(item.price).toLowerCase().includes(searchLower));
-
-          const stockMatch =
-            item.stock.toString().includes(tempSearch) ||
-            (searchLower.includes("stok") &&
-              item.stock
-                .toString()
-                .includes(tempSearch.replace(/[^0-9]/g, ""))) ||
-            (searchLower.includes("habis") && item.stock === 0) ||
-            (searchLower.includes("rendah") &&
-              item.stock > 0 &&
-              item.stock <= 10) ||
-            (searchLower.includes("tersedia") && item.stock > 0);
-
-          const categorySearchMatch = item.type
-            .toLowerCase()
-            .includes(searchLower);
-
-          const searchMatch =
-            nameMatch ||
-            statusMatch ||
-            priceMatch ||
-            stockMatch ||
-            categorySearchMatch;
-
-          return categoryMatch && (tempSearch === "" || searchMatch);
-        })
-        .sort((a, b) => {
-          let aValue, bValue;
-
-          switch (sortBy) {
-            case "name":
-              aValue = a.name.toLowerCase();
-              bValue = b.name.toLowerCase();
-              break;
-            case "price":
-              aValue = a.price;
-              bValue = b.price;
-              break;
-            case "stock":
-              aValue = a.stock;
-              bValue = b.stock;
-              break;
-            case "status":
-              aValue = a.status;
-              bValue = b.status;
-              break;
-            default:
-              aValue = a.name.toLowerCase();
-              bValue = b.name.toLowerCase();
-          }
-
-          if (sortOrder === "asc") {
-            return aValue > bValue ? 1 : -1;
-          } else {
-            return aValue < bValue ? 1 : -1;
-          }
-        })
-    );
-  }, [
-    productView,
-    product,
-    refreshing,
-    tempSearch,
-    selectedCategory,
-    sortBy,
-    sortOrder,
-  ]);
-  const filteredTempProduct = useMemo(() => {
-    return (
-      tempProduct.data &&
-      tempProduct.data
-        .map((prodChanged) => ({
-          ...prodChanged,
-          changedProduct: prodChanged.changedProduct.filter((item) => {
-            // category filter
-            const matchCategory =
-              selectedCategory === "All" ||
-              item.status_transaction === selectedCategory;
-
-            // search filter (check in product name, creator, accepter)
-            const search = tempSearch.toLowerCase();
-            const matchSearch =
-              item.name.toLowerCase().includes(search) ||
-              prodChanged.transaction_created.toLowerCase().includes(search) ||
-              item.creater?.name.toLowerCase().includes(search) ||
-              item.creater?.email.toLowerCase().includes(search) ||
-              item.accepter?.name?.toLowerCase().includes(search) ||
-              item.accepter?.email?.toLowerCase().includes(search);
-
-            return matchCategory && (tempSearch === "" || matchSearch);
-          }),
-        }))
-        .filter((prodChanged) => prodChanged.changedProduct.length > 0)
-    );
-  }, [
-    selectedCategory,
-    productView,
-    tempProduct,
-    refreshing,
-    tempSearch,
-    sortBy,
-    sortOrder,
-  ]);
   const theme = useTheme();
-  const debouncedSearch = useMemo(
-    () =>
-      debounce(
-        (text) => setTempSearch(text),
-        CONFIG.NUMBER.DEFAULT_DEBOUNCE_TIME
-      ),
-    []
-  );
   const [productView, setProductView] = useState(true);
   const [visibleHeaderSearch, setVisibleHeaderSearch] = useState(false);
   const handleDelete = (item) => {
@@ -491,121 +423,309 @@ export default function Product({ navigation }) {
   };
   const clearAllFilter = () => {
     setClearFilter(false);
-    setSelectedCategory("All");
+    setSelectedCategory(CONFIG.DEFAULT.CATEGORY.toLowerCase());
     setSortBy(null);
-    setSortOrder("asc");
+    setSortOrder("desc");
     setTempSearch("");
     setSearch("");
   };
-  async function getProduct({ start, length, order, search, firstRequest }) {
+  async function getProduct({
+    start,
+    length,
+    order,
+    search,
+    firstRequest,
+    category,
+  }) {
     setRefreshing(true);
     let result = null;
-    if (productView) {
-      result = await httpHelper("GET", "man/customer-company-good/data-table", {
-        start: start,
-        length: length,
-        order: order,
-        search: search,
-      });
-    } else {
-      result = await httpHelper(
-        "GET",
-        "man/customer-temporary-product/data-table",
-        {
-          start: start,
-          length: length,
-          order: order,
-          search: search,
-        }
-      );
-    }
-    if (productView) {
-      result.data.data = await Promise.all(
-        result.data.data.map(async (item) => {
-          item.picture = await downloadOrCahceFile(
-            CONFIG.API.ASSET_BASE_URL +
-              `/${
-                productView
-                  ? CONFIG.FILE_SYSTEM.PRODUCT_PICTURE_CACHE
-                  : CONFIG.FILE_SYSTEM.PRODUCT_TEMP_PICTURE_CACHE
-              }/${item.picture}`,
-            `${
-              productView
-                ? CONFIG.FILE_SYSTEM.PRODUCT_PICTURE_CACHE
-                : CONFIG.FILE_SYSTEM.PRODUCT_TEMP_PICTURE_CACHE
-            }`,
-            item.picture
-          );
-          setStartId(item.id);
-          return item;
-        })
-      );
-    }
-    if (firstRequest) {
+    try {
       if (productView) {
-        setProduct(result.data);
-        setCategories(
-          removeDuplicate([
-            "All",
-            ...Array.from(new Set(result.data.data.map((item) => item.type))),
-          ])
+        result = await httpHelper(
+          "GET",
+          "man/customer-company-good/data-table",
+          {
+            start: start,
+            length: length,
+            order: order,
+            search: search,
+            category: category,
+          }
         );
       } else {
-        setTempProduct(result.data);
-        setCategories([
-          "All",
-          ...Array.from(
-            new Set(
-              result.data.data.flatMap((trx) =>
-                trx.changedProduct.map((p) => p.status_transaction)
-              )
-            )
-          ),
-        ]);
-        console.log(categories, "categories");
+        result = await httpHelper(
+          "GET",
+          "man/customer-temporary-product/data-table",
+          {
+            start: start,
+            length: length,
+            order: order,
+            search: search,
+            category: category,
+          }
+        );
       }
-    } else {
-      if (productView) {
-        setProduct((prev) => ({
-          ...prev,
-          data: [...prev.data, ...result.data.data],
-        }));
-        setCategories((prev) => [
-          ...prev,
-          ...Array.from(new Set(result.data.data.map((item) => item.type))),
-        ]);
-      } else {
-        setTempProduct((prev) => ({
-          ...prev,
-          data: [...prev.data, ...result.data.data],
-        }));
-        setCategories((prev) =>
-          removeDuplicate([
-            ...prev,
+      if (result.data.data) {
+        if (productView) {
+          result.data.data = await Promise.all(
+            result.data.data.map(async (item) => {
+              item.picture = await downloadOrCacheFile(
+                CONFIG.API.ASSET_BASE_URL +
+                  `/${
+                    productView
+                      ? CONFIG.FILE_SYSTEM.CACHE.PRODUCT_PICTURE_CACHE
+                      : CONFIG.FILE_SYSTEM.CACHE.PRODUCT_TEMP_PICTURE_CACHE
+                  }/${item.picture}`,
+                `${
+                  productView
+                    ? CONFIG.FILE_SYSTEM.CACHE.PRODUCT_PICTURE_CACHE
+                    : CONFIG.FILE_SYSTEM.CACHE.PRODUCT_TEMP_PICTURE_CACHE
+                }`,
+                item.picture
+              );
+              setStartId(item.id);
+              return item;
+            })
+          );
+        } else {
+          result.data.data = await Promise.all(
+            result.data.data.map(async (item) => {
+              item.changedProduct = await Promise.all(
+                item.changedProduct.map(async (changedProduct) => {
+                  console.log(
+                    CONFIG.API.ASSET_BASE_URL +
+                      `/${
+                        changedProduct.picture !== "default.png"
+                          ? CONFIG.FILE_SYSTEM.CACHE.PRODUCT_TEMP_PICTURE_CACHE
+                          : CONFIG.FILE_SYSTEM.CACHE.PRODUCT_PICTURE_CACHE
+                      }/${changedProduct.picture}`
+                  );
+                  changedProduct.picture = await downloadOrCacheFile(
+                    CONFIG.API.ASSET_BASE_URL +
+                      `/${
+                        changedProduct.picture !== "default-product.png"
+                          ? CONFIG.FILE_SYSTEM.CACHE.PRODUCT_TEMP_PICTURE_CACHE
+                          : CONFIG.FILE_SYSTEM.CACHE.PRODUCT_PICTURE_CACHE
+                      }/${changedProduct.picture}`,
+                    CONFIG.FILE_SYSTEM.PRODUCT_TEMP_PICTURE_CACHE,
+                    changedProduct.picture
+                  );
+                  return changedProduct;
+                })
+              );
+              setStartId(item.transaction_created);
+              return item;
+            })
+          );
+        }
+      }
+      if (firstRequest) {
+        if (productView) {
+          setProduct(result.data);
+          setCategories(
+            removeDuplicate([
+              {
+                key: CONFIG.DEFAULT.CATEGORY.toLowerCase(),
+                label: CONFIG.DEFAULT.CATEGORY,
+              },
+              ...result.data.data.map((item) => ({
+                key: item.typeId,
+                label: item.type,
+              })),
+            ])
+          );
+          setSortOptions([
+            ...Object.keys(result.data.data[0])
+              .map((item) => {
+                if (
+                  ["picture", /Id$/i, /_at$/i].some((rule) =>
+                    rule instanceof RegExp ? rule.test(item) : rule === item
+                  )
+                ) {
+                  return null;
+                }
+                return {
+                  key: item,
+                  label: capitalizeFirstLetter(
+                    removeTandaHubung(toKebabCase(item))
+                  ),
+                };
+              })
+              .filter((item) => item !== null),
+          ]);
+        } else {
+          setTempProduct(result.data);
+          setCategories(
+            removeDuplicate(
+              [
+                {
+                  key: CONFIG.DEFAULT.CATEGORY.toLowerCase(),
+                  label: CONFIG.DEFAULT.CATEGORY,
+                },
+                ...result.data.data.flatMap((trx) =>
+                  trx.changedProduct.map((p) => ({
+                    key: p.status_transaction.toLowerCase(),
+                    label: p.status_transaction,
+                  }))
+                ),
+              ],
+              "key" // dedupe by `key`
+            )
+          );
+          setSortOptions([
             ...Array.from(
               new Set(
-                result.data.data.flatMap((trx) =>
-                  trx.changedProduct.map((p) => p.status_transaction)
-                )
+                Object.keys(result.data.data[0].changedProduct[0])
+                  .map((item) => {
+                    if (
+                      [
+                        "picture",
+                        /Id$/i,
+                        /_at$/i,
+                        /ed$/,
+                        /r$/,
+                        /reference$/,
+                        /by$/,
+                      ].some((rule) =>
+                        rule instanceof RegExp ? rule.test(item) : rule === item
+                      )
+                    ) {
+                      return null;
+                    }
+                    return {
+                      key: item,
+                      label: capitalizeFirstLetter(
+                        removeTandaHubung(toKebabCase(item))
+                      ),
+                    };
+                  })
+                  .filter((item) => item !== null)
               )
             ),
-          ])
-        );
+          ]);
+        }
+      } else {
+        if (productView) {
+          setProduct((prev) => ({
+            ...prev,
+            data: [...prev.data, ...result.data.data],
+          }));
+          setCategories((prev) =>
+            removeDuplicate(
+              [
+                ...prev,
+                ...result.data.data.map((item) => ({
+                  key: item.typeId,
+                  label: item.type.toLowerCase(),
+                })),
+              ],
+              "key"
+            )
+          );
+        } else {
+          setTempProduct((prev) => ({
+            ...prev,
+            data: [...prev.data, ...result.data.data],
+          }));
+          setCategories((prev) =>
+            removeDuplicate(
+              [
+                ...prev,
+                ...result.data.data.flatMap((trx) =>
+                  trx.changedProduct.map((p) => ({
+                    key: p.status_transaction.toLowerCase(),
+                    label: p.status_transaction,
+                  }))
+                ),
+              ],
+              "key"
+            )
+          );
+        }
       }
-    }
+    } catch (error) {}
     setRefreshing(false);
   }
+  const debouncedSetTempSearch = useCallback(
+    debounce((text) => {
+      setTempSearch(text);
+      const clearFilterDelayed = () => {
+        setTimeout(() => {
+          setClearFilter(true);
+        }, CONFIG.NUMBER.DEFAULT_DEBOUNCE_TIME);
+      };
+      clearFilterDelayed();
+    }, CONFIG.NUMBER.DEFAULT_DEBOUNCE_TIME),
+    []
+  );
+
+  useFocusEffect(
+    useCallback(() => {
+      (async function () {
+        await getProduct({
+          start: 0,
+          length: 5,
+          order: { dir: sortOrder, name: sortBy },
+          search: tempSearch,
+          firstRequest: true,
+          category: selectedCategory,
+        });
+      })();
+      return () => {
+        setProduct({ data: [] });
+        setTempProduct({ data: [] });
+        setCategories([
+          {
+            key: CONFIG.DEFAULT.CATEGORY.toLowerCase(),
+            label: CONFIG.DEFAULT.CATEGORY,
+          },
+        ]);
+        setSortOptions([]);
+        setStartId(0);
+        setSelectedCategory(CONFIG.DEFAULT.CATEGORY.toLowerCase());
+        setSortBy(null);
+        setSortOrder("desc");
+        setTempSearch("");
+        setSearch("");
+      };
+    }, [])
+  );
   useEffect(() => {
     (async function () {
       await getProduct({
         start: 0,
         length: 5,
-        order: { dir: "desc", name: "name" },
-        search: "",
+        order: { dir: sortOrder, name: sortBy },
+        search: tempSearch,
         firstRequest: true,
+        category: selectedCategory,
+      });
+    })();
+  }, [tempSearch, sortOrder, sortBy]);
+  useEffect(() => {
+    (async function () {
+      await getProduct({
+        start: 0,
+        length: 5,
+        order: { dir: sortOrder, name: sortBy },
+        search: tempSearch,
+        firstRequest: true,
+        category: selectedCategory,
       });
     })();
   }, [productView]);
+  useEffect(() => {
+    (async function () {
+      await getProduct({
+        start: 0,
+        length: 5,
+        order: { dir: sortOrder, name: sortBy },
+        search: tempSearch,
+        firstRequest: true,
+        category: selectedCategory,
+      });
+    })();
+  }, []);
   return (
     <SafeAreaView style={{ flex: 1 }}>
       <View style={{ flex: 1, flexDirection: "column" }}>
@@ -614,7 +734,7 @@ export default function Product({ navigation }) {
             flexDirection: "row",
             marginHorizontal: 10,
             marginVertical: 10,
-            backgroundColor: "white",
+            backgroundColor: theme.colors.background,
             borderRadius: 12,
             elevation: 2,
             shadowColor: theme.colors.shadow,
@@ -642,14 +762,8 @@ export default function Product({ navigation }) {
             <Text
               style={{
                 fontSize: productView ? 14 : 12,
-                fontWeight: productView ? "800" : "600",
-                color: productView
-                  ? theme.colors.primary
-                  : theme.colors.onSurface,
-                borderBottomWidth: 2,
-                borderBottomColor: productView
-                  ? theme.colors.primary
-                  : "transparent",
+                fontWeight: productView ? "800" : "700",
+                color: productView ? "black" : theme.colors.backdrop,
               }}
             >
               Product View
@@ -673,14 +787,8 @@ export default function Product({ navigation }) {
             <Text
               style={{
                 fontSize: !productView ? 14 : 12,
-                fontWeight: !productView ? "800" : "600",
-                color: !productView
-                  ? theme.colors.primary
-                  : theme.colors.onSurface,
-                borderBottomWidth: 2,
-                borderBottomColor: !productView
-                  ? theme.colors.primary
-                  : "transparent",
+                fontWeight: !productView ? "800" : "700",
+                color: !productView ? "black" : theme.colors.backdrop,
               }}
             >
               Temp Product View
@@ -702,13 +810,11 @@ export default function Product({ navigation }) {
           setClearFilter={setClearFilter}
           clearAllFilter={clearAllFilter}
           search={search}
-          onChange={(text) => {
-            debouncedSearch(text);
-            setSearch(text);
-            setClearFilter(true);
-          }}
-          setTempSearch={setTempSearch}
           setSearch={setSearch}
+          onChange={(text) => {
+            debouncedSetTempSearch(text);
+            setSearch(text);
+          }}
         />
         <View
           style={{
@@ -716,7 +822,7 @@ export default function Product({ navigation }) {
             marginHorizontal: 10,
             marginTop: 12,
             borderRadius: 12,
-            backgroundColor: "white",
+            backgroundColor: theme.colors.background,
             overflow: "hidden",
             elevation: 2,
             shadowColor: theme.colors.shadow,
@@ -726,7 +832,7 @@ export default function Product({ navigation }) {
           }}
         >
           <FlatList
-            data={productView ? filteredProduct : filteredTempProduct}
+            data={productView ? product.data : tempProduct.data}
             keyExtractor={(item, index) =>
               productView === true
                 ? item?.id?.toString() + index.toString()
@@ -746,9 +852,10 @@ export default function Product({ navigation }) {
                 await getProduct({
                   start: startId,
                   length: 5,
-                  order: { dir: "desc", name: "name" },
-                  search: "",
+                  order: { dir: sortOrder, name: sortBy },
+                  search: tempSearch,
                   firstRequest: false,
+                  category: selectedCategory,
                 });
               }
             }, CONFIG.NUMBER.DEFAULT_DEBOUNCE_TIME)}

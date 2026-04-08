@@ -8,6 +8,8 @@ import {
   Button,
   IconButton,
 } from "react-native-paper";
+import { debounce, wordBreak } from "../helpers/ConvertHelper";
+import CONFIG from "../config";
 
 export default function HeaderSearch({
   visible,
@@ -23,7 +25,6 @@ export default function HeaderSearch({
   setClearFilter,
   setSortBy,
   setSelectedCategory,
-  setTempSearch,
   setSearch,
   setVisibleHeaderSearch,
   clearAllFilter,
@@ -35,7 +36,7 @@ export default function HeaderSearch({
         marginHorizontal: 10,
         paddingHorizontal: 10,
         paddingVertical: 5,
-        backgroundColor: "white",
+        backgroundColor: theme.colors.background,
         elevation: 2,
         shadowColor: theme.colors.shadow,
         shadowOffset: { width: 0, height: 2 },
@@ -53,15 +54,13 @@ export default function HeaderSearch({
               alignItems: "center",
             }}
           >
-            <Text
-              style={{ fontSize: 12, fontWeight: "600" }}
-              textColor={theme.colors.onSurface}
-            >
+            <Text style={{ fontSize: 12, fontWeight: "700" }} textColor="black">
               Search Section
             </Text>
             <IconButton
               size={18}
               icon="chevron-up"
+              iconColor="black"
               onPress={() => setVisibleHeaderSearch(false)}
             />
           </View>
@@ -77,11 +76,12 @@ export default function HeaderSearch({
                 mode="outlined"
                 outlineColor={theme.colors.primary}
                 value={search}
-                outlineStyle={{ borderWidth: 2 }}
+                outlineStyle={{ borderWidth: 1.5 }}
                 right={
                   search ? (
                     <TextInput.Icon
                       size={18}
+                      iconColor="black"
                       icon="close"
                       onPress={() => {
                         onChange("");
@@ -94,6 +94,7 @@ export default function HeaderSearch({
                     <TextInput.Icon
                       size={18}
                       icon="magnify"
+                      iconColor="black"
                       style={{
                         alignItems: "flex-end",
                       }}
@@ -101,7 +102,8 @@ export default function HeaderSearch({
                   )
                 }
                 onChangeText={(e) => {
-                  onChange(e);
+                  setSearch(e);
+                  debounce(onChange(e), CONFIG.NUMBER.DEFAULT_DEBOUNCE_TIME);
                 }}
                 placeholderTextColor={theme.colors.onBackground}
                 textColor={theme.colors.onBackground}
@@ -110,7 +112,8 @@ export default function HeaderSearch({
                   padding: 0,
                   margin: 0,
                   height: 40,
-                  fontSize: 11,
+                  fontSize: 12,
+                  fontWeight: "700",
                   backgroundColor: theme.colors.elevation.level0,
                 }}
               />
@@ -118,145 +121,133 @@ export default function HeaderSearch({
             <Text
               style={{
                 fontSize: 12,
+                fontWeight: "700",
                 marginBottom: 8,
-                color: "#333",
+                color: theme.colors.onPrimaryContainer,
               }}
             >
-              Kategori:
+              Category:
             </Text>
-
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
               <View style={{ flexDirection: "row", gap: 8 }}>
                 {categories.map((category) => (
                   <Chip
-                    mode={selectedCategory === category ? "outlined" : "flat"}
-                    icon={""}
+                    mode={"flat"}
                     showSelectedCheck={false}
                     compact={true}
-                    key={category}
-                    selected={selectedCategory === category}
+                    key={category.key}
+                    selected={selectedCategory === category.key}
                     onPress={() => {
-                      setSelectedCategory(category);
+                      setSelectedCategory(category.key);
                       setClearFilter(true);
                     }}
                     style={{
                       backgroundColor:
-                        selectedCategory === category
-                          ? theme.colors.primaryContainer
-                          : theme.colors.surface,
+                        selectedCategory === category.key
+                          ? theme.colors.primary
+                          : theme.colors.primaryContainer,
                     }}
                     textStyle={{
                       color:
-                        selectedCategory === category
-                          ? theme.colors.onPrimaryContainer
-                          : theme.colors.onSurface,
+                        selectedCategory === category.key
+                          ? theme.colors.onPrimary
+                          : theme.colors.onPrimaryContainer,
                       fontSize: 10,
                     }}
                   >
-                    {category}
+                    {category.label}
                   </Chip>
                 ))}
               </View>
             </ScrollView>
-            <View>
-              <Text
-                style={{
-                  fontSize: 12,
-                  fontWeight: "600",
-                  marginBottom: 8,
-                  color: theme.colors.onSurface,
-                }}
-              >
-                Urutkan berdasarkan:
-              </Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                <View
-                  style={{
-                    flexDirection: "row",
-                    flexWrap: "wrap",
-                    gap: 8,
-                    marginBottom: 8,
-                  }}
-                >
-                  {sortOptions.map((option) => (
-                    <Chip
-                      mode={sortBy === option.key ? "outlined" : "flat"}
-                      key={option.key}
-                      showSelectedCheck={false}
-                      selected={sortBy === option.key}
-                      onPress={() => {
-                        setSortBy(option.key);
-                        setClearFilter(true);
-                      }}
-                      icon={""}
-                      style={{
-                        backgroundColor:
-                          sortBy === option.key
-                            ? theme.colors.primaryContainer
-                            : theme.colors.surface,
-                      }}
-                      textStyle={{
-                        color:
-                          sortBy === option.key
-                            ? theme.colors.onPrimaryContainer
-                            : theme.colors.onSurface,
-                        fontSize: 10,
-                      }}
-                    >
-                      {option.label}
-                    </Chip>
-                  ))}
-                </View>
-              </ScrollView>
+            <Text
+              style={{
+                fontSize: 12,
+                fontWeight: "700",
+                marginVertical: 5,
+                color: theme.colors.onPrimaryContainer,
+              }}
+            >
+              Sort by:
+            </Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
               <View
                 style={{
                   flexDirection: "row",
-                  justifyContent: "space-between",
+                  flexWrap: "wrap",
+                  gap: 8,
+                  marginBottom: 8,
                 }}
               >
+                {sortOptions.map((option) => (
+                  <Chip
+                    mode={"flat"}
+                    key={option.key}
+                    showSelectedCheck={false}
+                    selected={sortBy === option.key}
+                    onPress={() => {
+                      setSortBy(option.key);
+                      setClearFilter(true);
+                    }}
+                    icon={""}
+                    style={{
+                      backgroundColor:
+                        sortBy === option.key
+                          ? theme.colors.primary
+                          : theme.colors.primaryContainer,
+                    }}
+                    textStyle={{
+                      color:
+                        sortBy === option.key
+                          ? theme.colors.onPrimary
+                          : theme.colors.onPrimaryContainer,
+                      fontSize: 10,
+                    }}
+                  >
+                    {option.label}
+                  </Chip>
+                ))}
+              </View>
+            </ScrollView>
+            <View
+              style={{
+                flexDirection: "row",
+                justifyContent: "space-between",
+              }}
+            >
+              <Button
+                onPress={() => {
+                  setSortOrder(sortOrder === "asc" ? "desc" : "asc");
+                  setClearFilter(true);
+                }}
+                mode="contained-tonal"
+                icon={sortOrder === "asc" ? "arrow-up" : "arrow-down"}
+                style={{
+                  backgroundColor: theme.colors.primaryContainer,
+                  borderRadius: 8,
+                }}
+                labelStyle={{ fontSize: 10, fontWeight: "700" }}
+                textColor={theme.colors.onPrimaryContainer}
+                contentStyle={{ padding: 0, margin: -2 }}
+              >
+                {sortOrder === "asc" ? "ASC" : "DESC"}
+              </Button>
+              {clearFilter && (
                 <Button
-                  onPress={() => {
-                    setSortOrder(sortOrder === "asc" ? "desc" : "asc");
-                    setClearFilter(true);
-                  }}
                   mode="contained-tonal"
-                  icon={sortOrder === "asc" ? "arrow-up" : "arrow-down"}
+                  onPress={clearAllFilter}
                   style={{
-                    alignSelf: "flex-start",
                     backgroundColor: theme.colors.primaryContainer,
                     borderRadius: 8,
                   }}
-                  contentStyle={{
-                    padding: 0,
-                    margin: 0,
-                  }}
-                  labelStyle={{ fontSize: 8, fontWeight: "600" }}
+                  labelStyle={{ fontSize: 10, fontWeight: "700" }}
                   textColor={theme.colors.onPrimaryContainer}
+                  icon="close"
+                  contentStyle={{ padding: 0, margin: -2 }}
                 >
-                  {sortOrder === "asc" ? "ASC" : "DESC"}
+                  Clear Filter
                 </Button>
-                {clearFilter && (
-                  <Button
-                    mode="contained-tonal"
-                    onPress={clearAllFilter}
-                    contentStyle={{
-                      padding: 0,
-                      margin: 0,
-                    }}
-                    style={{
-                      alignSelf: "flex-start",
-                      backgroundColor: theme.colors.primaryContainer,
-                      fontWeight: "600",
-                      borderRadius: 8,
-                    }}
-                    labelStyle={{ fontSize: 8, fontWeight: "600" }}
-                    textColor={theme.colors.onPrimaryContainer}
-                    icon="close"
-                  >
-                    Clear Filter
-                  </Button>
-                )}
-              </View>
+              )}
             </View>
           </View>
         </>
@@ -270,17 +261,21 @@ export default function HeaderSearch({
             }}
           >
             <Text
-              style={{ fontSize: 11, fontWeight: "600" }}
-              textColor={theme.colors.onSurface}
+              style={{ fontSize: 12, fontWeight: "700" }}
+              textColor={theme.colors.onPrimaryContainer}
             >
               {clearFilter
-                ? ` Filtering ${
-                    search ?? ""
-                  } Category ${selectedCategory} Sort by ${
-                    sortBy && sortBy.slice(0, 1).toUpperCase() + sortBy.slice(1)
-                      ? sortBy.slice(0, 1).toUpperCase() + sortBy.slice(1)
-                      : "Name"
-                  } ${sortOrder.toUpperCase() ?? "ASC"}`.trim()
+                ? wordBreak(
+                    `Filtering ${search ?? ""} Category ${
+                      selectedCategory.label
+                    } Sort by ${
+                      sortBy &&
+                      sortBy.slice(0, 1).toUpperCase() + sortBy.slice(1)
+                        ? sortBy.slice(0, 1).toUpperCase() + sortBy.slice(1)
+                        : "Created At"
+                    } ${sortOrder.toUpperCase() ?? "ASC"}`,
+                    50
+                  ).trim()
                 : "Search Section"}
             </Text>
             <IconButton

@@ -5,8 +5,27 @@ import { useTheme } from "react-native-paper";
 import { useEffect } from "react";
 import CONFIG from "../config";
 import NavBar from "../components/NavBar";
+import { downloadOrCacheFile } from "../helpers/HttpHelper";
+import { appendObjectToArrayOfObject } from "../helpers/ConvertHelper";
 export default function Home() {
   const theme = useTheme();
+  async function downloadDefaultFile(defaultFile) {
+    const download = (fl) => {
+      return new Promise(async (resolve, reject) => {
+        let result = await downloadOrCacheFile(
+          `${CONFIG.API.ASSET_BASE_URL}/${fl.folder}/${fl.file}`,
+          fl.folder,
+          fl.file
+        );
+        resolve({ status: true, result: result });
+      });
+    };
+    return Promise.all([
+      defaultFile.map((file) => {
+        download(file);
+      }),
+    ]);
+  }
   async function requestPermission() {
     const check = await PermissionsAndroid.check("android.permission.CAMERA");
     console.log(check, "permission camera");
@@ -35,6 +54,13 @@ export default function Home() {
   }
 
   useEffect(() => {
+    downloadDefaultFile(
+      appendObjectToArrayOfObject(
+        [CONFIG.DEFAULT.FILE_SYSTEM, CONFIG.FILE_SYSTEM.CACHE],
+        ["file", "folder"],
+        { strict: false }
+      )
+    );
     requestPermission();
   }, []);
   return (

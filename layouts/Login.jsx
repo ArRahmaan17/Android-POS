@@ -18,7 +18,7 @@ import InputPassword from "../components/Input/InputPassword";
 import {
   httpHelper,
   handleChange,
-  downloadOrCahceFile,
+  downloadOrCacheFile,
 } from "../helpers/HttpHelper";
 import * as yup from "yup";
 import * as SecureStore from "expo-secure-store";
@@ -56,7 +56,7 @@ export default function Login() {
       await SecureStore.deleteItemAsync(CONFIG.STORAGE.TOKEN);
       await SecureStore.setItemAsync(CONFIG.STORAGE.TOKEN, result.data.token);
       if (result.data.user.user.profile_picture) {
-        result.data.user.user.profile_picture = await downloadOrCahceFile(
+        result.data.user.user.profile_picture = await downloadOrCacheFile(
           CONFIG.API.ASSET_BASE_URL +
             "/customer-profile-picture/" +
             result.data.user.user.profile_picture,

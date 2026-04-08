@@ -16,13 +16,17 @@ import {
 import * as ImagePicker from "expo-image-picker";
 import { SafeAreaView } from "react-native-safe-area-context";
 import * as SecureStore from "expo-secure-store";
-import { handleChange, httpHelper } from "../../helpers/HttpHelper";
+import {
+  downloadOrCacheFile,
+  handleChange,
+  httpHelper,
+} from "../../helpers/HttpHelper";
 import InputRight from "../../components/Input/InputRight";
 import { CONFIG, log } from "../../config";
+import * as FileSystem from "expo-file-system";
 
 export default function ProfileUser({ navigation }) {
   const theme = useTheme();
-  const [image, setImage] = useState(null);
   const [user, setUser] = useState({
     name: null,
     username: null,
@@ -74,17 +78,16 @@ export default function ProfileUser({ navigation }) {
       userData.append("phone_number", user.phone_number);
       userData.append("username", user.username);
       userData.append("email", user.email);
-
-      // Only append profile picture if it exists and has been changed
       if (user.profile_picture && user.profile_picture.uri) {
         userData.append("profile_picture", {
           uri: user.profile_picture.uri,
           type: user.profile_picture.mimeType || "image/jpg",
-          name: user.profile_picture.fileName || "profile_picture.jpg",
+          name:
+            user.profile_picture.fileName ||
+            CONFIG.DEFAULT.FILE_SYSTEM.PROFILE_PICTURE,
         });
       }
 
-      log(["Updating profile with data:", userData]);
       let result = await httpHelper(
         "POST",
         "customer-user/update-profile",
@@ -99,6 +102,17 @@ export default function ProfileUser({ navigation }) {
         const loggedUser = {
           ...JSON.parse(await SecureStore.getItemAsync(CONFIG.STORAGE.USER)),
         };
+        if (updatedUser.user.profile_picture) {
+          updatedUser.user.profile_picture = await downloadOrCacheFile(
+            CONFIG.API.ASSET_BASE_URL +
+              "/" +
+              CONFIG.FILE_SYSTEM.CACHE.PROFILE_PICTURE_CACHE +
+              "/" +
+              updatedUser.user.profile_picture,
+            CONFIG.FILE_SYSTEM.CACHE.PROFILE_PICTURE_CACHE,
+            updatedUser.user.profile_picture
+          );
+        }
         updatedUser = { ...updatedUser.data, ...loggedUser.company };
         await SecureStore.deleteItemAsync(CONFIG.STORAGE.USER);
         await SecureStore.setItemAsync(
@@ -122,6 +136,7 @@ export default function ProfileUser({ navigation }) {
         const userData = await SecureStore.getItemAsync(CONFIG.STORAGE.USER);
         if (userData) {
           const userLogged = JSON.parse(userData);
+
           console.log("userLogged", userLogged);
           setUser({
             name: userLogged.user.name,
@@ -137,7 +152,6 @@ export default function ProfileUser({ navigation }) {
         console.error("Error loading user data:", error);
       }
     };
-
     loadUserData();
   }, []);
   return (
@@ -164,9 +178,13 @@ export default function ProfileUser({ navigation }) {
                   <Avatar.Image
                     size={100}
                     source={
-                      !user.profile_picture?.uri
-                        ? require("../../assets/0.jpg")
-                        : { uri: user.profile_picture.uri }
+                      typeof user.profile_picture === "string" &&
+                      typeof user.profile_picture !== Object
+                        ? { uri: user.profile_picture }
+                        : user.profile_picture &&
+                          typeof user.profile_picture === Object
+                        ? { uri: user.profile_picture.uri }
+                        : ""
                     }
                   />
                 </TouchableRipple>
